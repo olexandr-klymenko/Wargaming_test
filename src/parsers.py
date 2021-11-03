@@ -4,8 +4,7 @@ import re
 
 from bs4 import BeautifulSoup
 from loguru import logger
-from pydantic import HttpUrl, ValidationError
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl, ValidationError
 import requests
 
 
