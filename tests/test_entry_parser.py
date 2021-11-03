@@ -1,9 +1,9 @@
 import json
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import feedparser
 
-from src.parsers import EntryParser
+from Wargaming_test.src.parsers import EntryParser
 
 FEED_SOURCE = """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -33,7 +33,7 @@ FEED_SOURCE = """
 
             <item>
                 <title>Naval Legends: USS Torsk</title>
-                <link>https://worldofwarships.com/en/news/general-news/naval-legends-torsk/</link>
+                <link>https://worldofwarships.com/es-mx/news/wgc-client/community/launch_day_november_2021/</link>
                 <description>
                     <![CDATA[<div>
     In this episode, we’ll learn about the famous WWII submarine that’s now preserved at Baltimore Harbor.
@@ -52,26 +52,53 @@ FEED_SOURCE = """
 </rss>
 """
 
+SOURCE_LINK = "https://worldofwarships.com/es-mx/news/wgc-client/community/launch_day_november_2021/"
+
 
 class TestEntryParser(TestCase):
-    def test_entry_parser(self):
-        result = [json.loads(el.json()) for el in EntryParser(feedparser.parse(FEED_SOURCE)).parse()]
+    def test_entry_parser_wgc_client(self):
+        EntryParser._get_image = mock.Mock(
+            return_value="https://wowsp-wows-na.wgcdn.co/dcont/fb/image/tmb/f968c302-3735-11ec-8d3f-d89d6715223c_1200x.jpg"
+        )
+        result = [
+            json.loads(el.json())
+            for el in EntryParser(feedparser.parse(FEED_SOURCE)).parse()
+        ]
         expected = [
             {
                 "title": "Naval Legends: USS Torsk",
                 "description": "In this episode, we’ll learn about the famous WWII"
                 " submarine that’s now preserved at Baltimore Harbor.",
-                "link": "https://worldofwarships.com/en/news/general-news/naval-legends-torsk/",
-                "image": "https://wowsp-wows-na.wgcdn.co"
-                "/dcont/fb/image/tmb/b028b6d2-37d2-11ec-9e7a-8cdcd4b147d4_1200x.jpg",
+                "link": SOURCE_LINK,
+                "image": "https://wowsp-wows-na.wgcdn.co/dcont/fb/image/tmb/f968c302-3735-11ec-8d3f-d89d6715223c_1200x.jpg",
             }
         ]
         self.assertEqual(result, expected)
 
-    def test_entry_parser_fail(self):
-        source = "<link>https://worldofwarships.com/en/news/general-news/naval-legends-torsk/</link>"
-        invalid = "<link>httpworldofwarships.com/en/news/general-news/naval-legends-torsk/</link>"
+    def test_entry_parser_non_wgc_client(self):
+        non_wgc = (
+            "https://worldofwarships.com/es-mx/news/community/launch_day_november_2021/"
+        )
+        result = [
+            json.loads(el.json())
+            for el in EntryParser(
+                feedparser.parse(FEED_SOURCE.replace(SOURCE_LINK, non_wgc))
+            ).parse()
+        ]
+        expected = [
+            {
+                "title": "Naval Legends: USS Torsk",
+                "description": "In this episode, we’ll learn about the famous WWII"
+                " submarine that’s now preserved at Baltimore Harbor.",
+                "link": "https://worldofwarships.com/es-mx/news/community/launch_day_november_2021/",
+                "image": "https://wowsp-wows-na.wgcdn.co/dcont/fb/image/tmb/b028b6d2-37d2-11ec-9e7a-8cdcd4b147d4_1200x.jpg",
+            }
+        ]
+        self.assertEqual(result, expected)
+
+    def test_entry_parser_empty(self):
+        invalid = "httpworldofwarships.com/en/news/general-news/naval-legends-torsk/"
         result = EntryParser(
-            feedparser.parse(FEED_SOURCE.replace(source, invalid))
+            feedparser.parse(FEED_SOURCE.replace(SOURCE_LINK, invalid))
         ).parse()
         self.assertEqual(result, [])
