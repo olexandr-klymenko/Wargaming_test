@@ -50,19 +50,15 @@ class EntryParser(BaseParser):
             except ValidationError as err:
                 logger.error(err)
 
-        self._handle_wgc_client(result)
+        logger.info("Start updating images ...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            executor.map(self._update_image, [el for el in result if "wgc-client" in el.link])
 
         return result
 
-    def _handle_wgc_client(self, entries: list[ArticleInfo]):
-        logger.info("Start updating images ...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(self._update_image, entries)
-
     def _update_image(self, entry: ArticleInfo):
-        if "wgc-client" in entry.link:
-            logger.info(f"Updating image for article: '{entry.title}'")
-            entry.image = self._get_image(entry.link)
+        logger.info(f"Updating image for article: '{entry.title}'")
+        entry.image = self._get_image(entry.link)
 
     def _get_image(self, link):
         html = requests.get(link).text
@@ -70,4 +66,5 @@ class EntryParser(BaseParser):
         image_div = soup.find(class_="_backdrop")
         if new_image_re := self.WGC_CLIENT_IMAGE_RE.search(image_div.attrs["style"]):
             return new_image_re.group(1)
-        raise ImageParsingError("Failed to parse new image")
+
+        raise ImageParsingError("Failed to parse image URL")

@@ -1,8 +1,11 @@
-1. Install dependencies
+* Prerequisites
+> Python interpreter version 3.8+
+
+* Install dependencies
 > pip install -r requirements.txt
 
-2. Run main.py
+* Run main.py
 > python main.py
 
-3. Run tests
+* Run tests
 > pytest .
